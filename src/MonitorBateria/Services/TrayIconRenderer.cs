@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -54,11 +55,16 @@ public static class TrayIconRenderer
             if (d.Level is int lvl && d.IsConnected)
             {
                 string text = lvl >= 100 ? "100" : lvl.ToString();
-                float fontPx = text.Length >= 3 ? size * 0.60f : size * 0.80f;
+                bool chg = d.IsCharging;
+                float fontPx = chg ? (text.Length >= 3 ? size * 0.44f : size * 0.60f)
+                                   : (text.Length >= 3 ? size * 0.60f : size * 0.80f);
                 using var font = new Font(PickFont(), fontPx, FontStyle.Bold, GraphicsUnit.Pixel);
                 using var brush = new SolidBrush(fg);
-                var area = new RectangleF(-2, -size * 0.06f, size + 4, size - barH + 1);
-                using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, FormatFlags = StringFormatFlags.NoWrap | StringFormatFlags.NoClip };
+                // Carregando: número à esquerda e um raio à direita.
+                var area = chg ? new RectangleF(-2, -size * 0.06f, size * 0.66f + 2, size - barH + 1)
+                               : new RectangleF(-2, -size * 0.06f, size + 4, size - barH + 1);
+                if (chg) DrawBolt(g, new RectangleF(size * 0.62f, 0, size * 0.38f, size - barH - 1), accent, lightTaskbar);
+                using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, FormatFlags = StringFormatFlags.NoWrap | StringFormatFlags.NoClip, Trimming = StringTrimming.None };
                 g.DrawString(text, font, brush, area, sf);
 
                 // barra de nível
@@ -126,6 +132,18 @@ public static class TrayIconRenderer
         }
         handle = bmp.GetHicon();
         return Icon.FromHandle(handle);
+    }
+
+    /// <summary>Raio (símbolo de carregando) encaixado no retângulo, com contorno para destacar.</summary>
+    private static void DrawBolt(Graphics g, RectangleF r, Color color, bool lightTaskbar)
+    {
+        // Raio em coordenadas 0..1 (largura × altura)
+        (float x, float y)[] shape = { (0.70f, 0f), (0.05f, 0.58f), (0.45f, 0.58f), (0.30f, 1f), (0.95f, 0.40f), (0.55f, 0.40f) };
+        var pts = shape.Select(p => new PointF(r.X + p.x * r.Width, r.Y + p.y * r.Height)).ToArray();
+        using var outline = new Pen(lightTaskbar ? Color.White : Color.FromArgb(32, 32, 32), Math.Max(1f, r.Width / 7f)) { LineJoin = LineJoin.Round };
+        g.DrawPolygon(outline, pts);
+        using var fill = new SolidBrush(color);
+        g.FillPolygon(fill, pts);
     }
 
     private static string? _font;

@@ -299,19 +299,28 @@ public sealed class LogitechProvider
     }
 
     /// <summary>
-    /// Headsets Logitech (G533/G933/G935…): curva de descarga usada pelo G HUB/HeadsetControl.
-    /// Carregando, o carregador eleva a tensão medida (~240 mV), então descontamos para não
-    /// mostrar mais do que o real (calibrado com o G HUB: 4028 mV carregando ≈ 39%).
+    /// Headsets Logitech (G533/G933/G935…): curvas oficiais do G HUB para o G533
+    /// (depots\…\g533\battery.xml). A descarga vem da curva tensão × mAh consumidos
+    /// (total 1038,75 mAh); a carga, da curva "charging_topping" (tensão sob carga × %).
     /// </summary>
     internal static int HeadsetVoltageToPercent(int mv, bool charging)
+        => Interpolate(mv, charging ? HeadsetCharge : HeadsetDischarge);
+
+    private static readonly (int mv, int pct)[] HeadsetDischarge =
     {
-        if (charging) mv -= 240;
-        (int mv, int pct)[] curve =
-        {
-            (4175, 100), (4000, 80), (3880, 60), (3817, 50), (3766, 30), (3730, 20), (3664, 5), (3310, 0),
-        };
-        return Interpolate(mv, curve);
-    }
+        (4042, 100), (4002, 99), (3929, 93), (3908, 87), (3885, 82), (3862, 78), (3835, 74), (3812, 70),
+        (3794, 66), (3779, 61), (3766, 57), (3755, 53), (3745, 48), (3736, 44), (3727, 39), (3718, 34),
+        (3708, 30), (3696, 26), (3684, 22), (3666, 17), (3646, 13), (3639, 9), (3599, 5), (3558, 4),
+        (3517, 3), (3475, 2), (3432, 1), (3350, 0),
+    };
+
+    private static readonly (int mv, int pct)[] HeadsetCharge =
+    {
+        (4208, 98), (4180, 94), (4163, 90), (4145, 85), (4126, 81), (4109, 77), (4093, 73), (4078, 69),
+        (4062, 64), (4049, 60), (4037, 56), (4027, 52), (4019, 47), (4012, 43), (4006, 39), (4001, 34),
+        (3996, 30), (3987, 26), (3969, 22), (3952, 18), (3933, 12), (3892, 10), (3850, 6), (3807, 4),
+        (3763, 3), (3718, 2), (3631, 1), (3535, 0),
+    };
 
     private static int Interpolate(int mv, (int mv, int pct)[] curve)
     {

@@ -70,8 +70,8 @@
                                            Visibility="{Binding DataContext.ShowNames, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}}" />
                                 <TextBlock Text="{Binding LevelText}" FontSize="13.5" FontWeight="SemiBold" Margin="5,0,0,0" VerticalAlignment="Center"
                                            Foreground="{Binding ColorKey, Converter={StaticResource LevelBrush}}" />
-                                <TextBlock Text="&#xE945;" FontFamily="{StaticResource IconFont}" FontSize="11" Margin="2,1,0,0" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource Level.charge}"
+                                <TextBlock Text="&#xE945;" FontFamily="{StaticResource IconFont}" FontSize="15" Margin="3,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource Level.charge}" ToolTip="Carregando"
                                            Visibility="{Binding IsCharging, Converter={StaticResource BoolVis}}" />
                             </StackPanel>
                         </DataTemplate>
