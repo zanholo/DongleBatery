@@ -1,0 +1,116 @@
+<Application x:Class="MonitorBateria.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:MonitorBateria.UI"
+             ThemeMode="System"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <ResourceDictionary>
+            <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+            <!-- Cores de nível (trocadas em código conforme tema claro/escuro) -->
+            <SolidColorBrush x:Key="Level.ok" Color="#6CCB5F" />
+            <SolidColorBrush x:Key="Level.warn" Color="#FCB900" />
+            <SolidColorBrush x:Key="Level.crit" Color="#FF6363" />
+            <SolidColorBrush x:Key="Level.charge" Color="#4CC2FF" />
+            <SolidColorBrush x:Key="Level.none" Color="#8A8A8A" />
+
+            <SolidColorBrush x:Key="Panel.Background" Color="#F2202020" />
+            <SolidColorBrush x:Key="Panel.Card" Color="#0DFFFFFF" />
+            <SolidColorBrush x:Key="Panel.CardHover" Color="#15FFFFFF" />
+            <SolidColorBrush x:Key="Panel.Stroke" Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="Panel.Text" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Panel.SubText" Color="#C5FFFFFF" />
+            <SolidColorBrush x:Key="Panel.Track" Color="#26FFFFFF" />
+
+            <ui:ColorKeyToBrush x:Key="LevelBrush" />
+            <ui:ColorKeyToBrush x:Key="LevelBrushSoft" Opacity="0.16" />
+            <ui:BoolToVisibility x:Key="BoolVis" />
+            <ui:BoolToVisibility x:Key="BoolVisInv" Invert="True" />
+            <ui:BoolToOpacity x:Key="BoolOpacity" />
+            <ui:NullToVisibility x:Key="NullVis" />
+            <ui:InvertBool x:Key="InvertBool" />
+
+            <!-- Desenho vetorial de fones intra-auriculares (no estilo dos ícones Fluent) -->
+            <Geometry x:Key="EarbudsGeometry">M7,3.6 A3.6,3.6 0 1 1 6.99,3.6 Z M7.9,10.9 L7.9,18.6 A1.3,1.3 0 0 0 10.5,18.6 L10.5,9.6 M17,3.6 A3.6,3.6 0 1 1 16.99,3.6 Z M16.1,10.9 L16.1,18.6 A1.3,1.3 0 0 1 13.5,18.6 L13.5,9.6</Geometry>
+
+            <!-- Botão de ícone sem borda -->
+            <Style x:Key="IconButton" TargetType="Button">
+                <Setter Property="Width" Value="34" />
+                <Setter Property="Height" Value="34" />
+                <Setter Property="Foreground" Value="{DynamicResource Panel.Text}" />
+                <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="Transparent" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="{DynamicResource Panel.CardHover}" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.7" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="IconToggle" TargetType="ToggleButton">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="Foreground" Value="{DynamicResource Panel.SubText}" />
+                <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="bd" Background="Transparent" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="{DynamicResource Panel.CardHover}" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource Level.charge}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Barra de bateria -->
+            <Style x:Key="BatteryBar" TargetType="ProgressBar">
+                <Setter Property="Height" Value="6" />
+                <Setter Property="Minimum" Value="0" />
+                <Setter Property="Maximum" Value="100" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ProgressBar">
+                            <Grid>
+                                <Border x:Name="PART_Track" CornerRadius="3" Background="{DynamicResource Panel.Track}" />
+                                <Border x:Name="PART_Indicator" CornerRadius="3" HorizontalAlignment="Left"
+                                        Background="{TemplateBinding Foreground}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="SectionHeader" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{DynamicResource Panel.SubText}" />
+                <Setter Property="Margin" Value="2,16,0,6" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
