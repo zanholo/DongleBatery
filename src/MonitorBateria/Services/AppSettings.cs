@@ -40,6 +40,8 @@ public sealed class AppSettings
     /// <summary>Posição em pixels físicos (canto superior esquerdo). null = automático.</summary>
     public int? WidgetX { get; set; }
     public int? WidgetY { get; set; }
+    /// <summary>Borda direita do widget; usada como âncora quando ele fica na metade direita da tela.</summary>
+    public int? WidgetRight { get; set; }
 
     [JsonIgnore]
     public static string Folder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MonitorBateria");

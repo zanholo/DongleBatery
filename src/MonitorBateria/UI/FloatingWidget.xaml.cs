@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -41,9 +41,10 @@ public partial class FloatingWidget : Window, INotifyPropertyChanged
         _monitor.Updated += (_, _) => UpdateEmpty();
         SizeChanged += (_, _) => Dispatcher.BeginInvoke(() =>
         {
-            // Sem posição salva: fica ancorado no canto inferior direito. Com posição: só não deixa sair da tela.
+            // Sem posição salva: fica ancorado no canto inferior direito. Com posição: mantém a borda
+            // âncora no lugar e recentraliza na barra de tarefas.
             if (_settings.WidgetX is null) RestorePosition();
-            else KeepInsideScreen();
+            else ReanchorAfterResize();
         }, System.Windows.Threading.DispatcherPriority.Background);
         SourceInitialized += (_, _) => RestorePosition();
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.BeginInvoke(EnsureOnScreen);
@@ -91,7 +92,34 @@ public partial class FloatingWidget : Window, INotifyPropertyChanged
         if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r)) return;
         _settings.WidgetX = r.Left;
         _settings.WidgetY = r.Top;
+        _settings.WidgetRight = r.Right;
         _settings.Save();
+    }
+
+    /// <summary>
+    /// O widget mudou de tamanho (entrou/saiu dispositivo). Mantém fixa a borda mais próxima da
+    /// lateral da tela: na metade direita (ex.: ao lado do relógio) cresce para a esquerda; na
+    /// metade esquerda cresce para a direita. Depois recentraliza na barra de tarefas, se estiver nela.
+    /// </summary>
+    private void ReanchorAfterResize()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r)) return;
+        int w = r.Right - r.Left, h = r.Bottom - r.Top;
+        int savedLeft = _settings.WidgetX ?? r.Left;
+        int savedRight = _settings.WidgetRight ?? savedLeft + w;
+        int savedTop = _settings.WidgetY ?? r.Top;
+
+        var screen = Forms.Screen.FromPoint(new System.Drawing.Point((savedLeft + savedRight) / 2, savedTop + h / 2));
+        var b = screen.Bounds;
+        bool anchorRight = (savedLeft + savedRight) / 2 > b.Left + b.Width / 2;
+        int x = anchorRight ? savedRight - w : savedLeft;
+        x = Math.Clamp(x, b.Left, Math.Max(b.Left, b.Right - w));
+        int y = Math.Clamp(savedTop, b.Top, Math.Max(b.Top, b.Bottom - h));
+
+        Native.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
+        SnapToTaskbarIfOver();               // se estiver na barra, centraliza nela e salva
+        if (!_onTaskbar) SavePosition();
     }
 
     private void RestorePosition()
@@ -100,7 +128,7 @@ public partial class FloatingWidget : Window, INotifyPropertyChanged
         if (_settings.WidgetX is int x && _settings.WidgetY is int y && IsVisibleSpot(x, y))
         {
             Native.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
-            Dispatcher.BeginInvoke(SnapToTaskbarIfOver, System.Windows.Threading.DispatcherPriority.Loaded);
+            Dispatcher.BeginInvoke(ReanchorAfterResize, System.Windows.Threading.DispatcherPriority.Loaded);
             return;
         }
         // Padrão: canto inferior direito do monitor principal, acima da barra de tarefas.
@@ -112,20 +140,6 @@ public partial class FloatingWidget : Window, INotifyPropertyChanged
             int w = r.Right - r.Left, h = r.Bottom - r.Top;
             Native.SetWindowPos(hwnd, IntPtr.Zero, wa.Right - w - 16, wa.Bottom - h - 16, 0, 0, SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
         }, System.Windows.Threading.DispatcherPriority.Loaded);
-    }
-
-    /// <summary>Se o widget cresceu e passou da borda do monitor, puxa de volta para dentro.</summary>
-    private void KeepInsideScreen()
-    {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r)) return;
-        var b = Forms.Screen.FromPoint(new System.Drawing.Point(r.Left + 20, r.Top + 10)).Bounds;
-        int x = r.Left, y = r.Top;
-        if (r.Right > b.Right) x = Math.Max(b.Left, b.Right - (r.Right - r.Left));
-        if (r.Bottom > b.Bottom) y = Math.Max(b.Top, b.Bottom - (r.Bottom - r.Top));
-        if (x != r.Left || y != r.Top)
-            Native.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
-        if (_onTaskbar) SnapToTaskbarIfOver();
     }
 
     private void EnsureOnScreen()
