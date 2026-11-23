@@ -287,7 +287,10 @@ public sealed class LogitechProvider
             {
                 int mv = (r[0] << 8) | r[1];
                 if (mv == 0) return (null, null, false); // headset desligado (só o dongle responde)
-                bool charging = r[2] == 0x03 || (r[2] & 0x02) != 0;
+                // Status: 0x01 descarregando, 0x03 carregando, 0x07 carga completa (ainda no cabo).
+                // Com a carga completa não há corrente de carga, então a tensão não está elevada.
+                if (r[2] == 0x07) return (100, PowerState.Full, false);
+                bool charging = r[2] == 0x03;
                 return (HeadsetVoltageToPercent(mv, charging), charging ? PowerState.Charging : PowerState.Discharging, true);
             }
         }
